@@ -3,11 +3,6 @@
 A UI regression automation framework for the **Commerce Parliament AI Question Handler**
 portal (`https://commerce-parliament.myscheme.in/`), built with Playwright + TypeScript.
 
-This is a production-style, GitHub-ready framework — not a demonstration of every
-Playwright feature. It automates the highest-value business workflows identified by
-exploring the _live_ application (not the BRD, which describes an earlier/aspirational
-design — see `docs/application-overview.md` §0 for why the two disagree in places) and by
-cross-referencing a real manual-testing bug sheet.
 
 ## 1. Why Playwright
 
@@ -32,9 +27,6 @@ cross-referencing a real manual-testing bug sheet.
 | Linting / formatting             | ESLint (flat config) + Prettier                                              |
 | CI                               | GitHub Actions                                                               |
 | Reporting                        | Playwright HTML reporter (always) + JUnit (CI only)                          |
-
-Deliberately **not** used: Cucumber/BDD, a custom test runner, an API-automation layer,
-database seeding, or any UI framework beyond what Playwright itself provides.
 
 ## 3. Framework architecture
 
@@ -126,45 +118,11 @@ small and orthogonal — see `docs/test-strategy.md` §7 for the full list:
 
 ## 7. Authentication strategy
 
-The portal's current sign-in is a single "dev sign-in" email field — no password, no OTP,
-no real SSO (the BRD specifies Parichay SSO; it is not present in this build — see
-`docs/application-overview.md` §2). Division-only and Parliament-access-only accounts
-additionally land on a **role picker** ("Select your role to continue") before reaching a
-dashboard.
-
-Four role shapes are genuinely exercised by the suite (`fixtures/roles.ts`) — Super Admin,
-Secretary, a multi-division Joint Secretary, and a Division User — each with its own
-`storageState` file produced once by `tests/auth.setup.ts` (a Playwright "setup project"
-that all other tests depend on). A fifth, plain "Parliament User" account is used for one
-RBAC check only and deliberately has **no** `storageState` file, since nothing else needs
-it.
-
 Credentials (here, just email addresses — see above) always come from environment
-variables, never hardcoded, per `.env.example`.
+variables.
 
-## 8. Known timing/behavior quirks this framework works around
 
-Worth reading before adding new tests against this app:
-
-1. **`storageState()` alone is not enough to restore a session.** The app keeps its
-   active-role marker in `sessionStorage` (`parliamentAppStore`), which Playwright's
-   `storageState()` does not capture (only cookies + `localStorage`). Without reseeding
-   it, a restored session lands back on the sign-in screen when visiting role-resolution
-   routes like the Executive Dashboard. `tests/auth.setup.ts` captures a sessionStorage
-   sidecar file per role; `fixtures/test.ts` replays it via `context.addInitScript()`.
-   Always sign in / use the `role` fixture through the existing helpers rather than
-   hand-rolling a new storageState path.
-2. **KPI counts and list tables render asynchronously**, arriving after the page shell
-   (a `—` placeholder shows first on KPI cards). Always assert on the first row / a
-   non-placeholder value before reading a count, rather than reading immediately after
-   `goto()`.
-3. **The shared demo environment rate-limits aggressively.** Running the suite with more
-   than 2 parallel Playwright workers reliably produces HTTP 429s partway through a full
-   run (confirmed independently with `curl`, not a test-code issue). `playwright.config.ts`
-   pins `workers: 2` for exactly this reason — don't raise it against this shared
-   environment without a good reason.
-
-## 9. Test data strategy (short version — full detail in `docs/test-data-strategy.md`)
+## 8. Test data strategy (short version — full detail in `docs/test-data-strategy.md`)
 
 - Read-only regression assertions reuse **already-seeded questions** identified by stable
   Diary No. (`test-data/questions.ts`), rather than each test uploading its own PDF.
@@ -176,7 +134,7 @@ Worth reading before adding new tests against this app:
 - No database manipulation, no API-based seeding — every piece of state a test depends on
   is either read through the UI or created through the UI by that test itself.
 
-## 10. Best practices this repo follows
+## 9. Best practices this repo follows
 
 - Arrange/Act/Assert structure in every test.
 - Test names describe **business behavior**, not implementation
@@ -191,14 +149,13 @@ Worth reading before adding new tests against this app:
   `test.step()` to keep a real business journey readable as one unit rather than being
   artificially split across files that would depend on execution order.
 
-## 11. CI/CD
+## 10. CI/CD
 
 `.github/workflows/playwright.yml` runs on every push/PR to `main` (and via manual
 dispatch, optionally scoped with a `--grep` pattern). It installs dependencies, installs
 just the Chromium browser, runs the suite, and uploads the HTML report + JUnit results +
 traces as artifacts (always for the report, only on failure for traces). Credentials are
-read from GitHub Secrets — see the `env:` block in the workflow file for the exact secret
-names to configure in the repository settings.
+read from GitHub Secrets.
 
 ## 12. Known limitations
 
@@ -217,11 +174,3 @@ names to configure in the repository settings.
 - **LS/RS master-bulletin extraction (BRD UC-03) and e-Office integration** were not found
   in the live application during exploration and are therefore not automated — see
   `docs/application-overview.md` §5.13.
-
-## 13. Further reading
-
-- `docs/application-overview.md` — modules, roles, navigation, live-verified behavior
-- `docs/test-strategy.md` — prioritized scenarios, smoke/regression split, scoping decisions
-- `docs/test-data-strategy.md` — the PDF fixture catalog and why each one is (or isn't) used
-- `docs/locator-recommendations.md` — where a `data-testid` would help, and why
-- `docs/interview-guide.md` — how to talk through this framework in an interview
