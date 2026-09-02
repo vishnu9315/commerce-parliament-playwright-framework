@@ -1,0 +1,18 @@
+node_modules/
+.env
+
+# Raw source material (BRD, bug sheet, requirement notes, sample PDFs) - not
+# part of the framework itself. Kept locally for reference only; the one PDF
+# actually used as a test fixture lives independently under test-data/.
+/reference-material/
+
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.auth/
+/blob-report/
+/.playwright-mcp/
+
+# OS / editor
+.DS_Store
+Thumbs.db
